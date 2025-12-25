@@ -1,11 +1,10 @@
 name: AI Studio Build and Deploy to Github Page
 
-# 触发条件
 on:
   push:
     branches:
-      - main  # 当 push 到 main 分支时触发
-  workflow_dispatch:   # 手动触发
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,32 +15,25 @@ jobs:
   build:
     name: Build Project
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ 检出代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ 安装 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 3️⃣ 安装依赖
       - name: Install dependencies
         run: npm install
 
-      # 4️⃣ 打包项目
-      - name: Build with Webpack
-        run: npm run build
-        # ⚠️ 确保 package.json 中有 "build": "webpack --mode production"
+      - name: Build with Vite
+        run: npm run build  # 确保 package.json 有 "build": "vite build"
 
-      # 5️⃣ 上传构建产物
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs   # ⚠️ 根据你的 webpack 输出目录修改
+          path: docs  # Vite 输出目录
 
   deploy:
     name: Deploy to GitHub Pages
@@ -49,7 +41,6 @@ jobs:
     needs: build
     environment:
       name: github-pages
-
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
