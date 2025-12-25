@@ -24,6 +24,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -35,6 +38,8 @@ jobs:
 
       - name: Build with Vite
         run: npm run build
+        env:
+          NODE_ENV: production
 
       /** 验证构建产物 */
       - name: Verify build output
@@ -48,12 +53,19 @@ jobs:
             echo "Warning: Assets directory not found!"
             exit 1
           fi
+          echo "=== Content of docs/index.html ==="
+          cat docs/index.html
+          echo "=== End of index.html ==="
           if grep -q "type=\"module\"" docs/index.html; then
-            echo "Found module script in index.html"
+            echo "✓ Found module script in index.html"
           else
-            echo "Warning: No module script found in index.html!"
+            echo "✗ Warning: No module script found in index.html!"
             exit 1
           fi
+          
+      /** 创建 .nojekyll 文件，防止 GitHub Pages 使用 Jekyll 处理 */
+      - name: Add .nojekyll file
+        run: touch docs/.nojekyll
 
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
