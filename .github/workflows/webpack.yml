@@ -32,10 +32,42 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          echo "Installing dependencies..."
+          npm install
+          echo "Dependencies installed successfully"
+          
+      - name: Check project files
+        run: |
+          echo "=== Checking source files ==="
+          ls -la
+          echo "=== Content of index.html ==="
+          cat index.html
+          echo "=== Checking if index.tsx exists ==="
+          if [ -f "index.tsx" ]; then
+            echo "✓ index.tsx exists"
+            head -20 index.tsx
+          else
+            echo "✗ index.tsx not found!"
+            exit 1
+          fi
+          if [ -f "App.tsx" ]; then
+            echo "✓ App.tsx exists"
+          else
+            echo "✗ App.tsx not found!"
+            exit 1
+          fi
 
       - name: Build with Vite
-        run: npm run build
+        run: |
+          echo "Starting Vite build..."
+          npm run build 2>&1 | tee build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          echo "Build command completed with exit code: $BUILD_EXIT_CODE"
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "Build failed!"
+            exit $BUILD_EXIT_CODE
+          fi
         env:
           NODE_ENV: production
 
