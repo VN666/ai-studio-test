@@ -11,6 +11,11 @@ permissions:
   pages: write
   id-token: write
 
+/** 防止并发部署 */
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build Project
@@ -23,17 +28,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build with Vite
-        run: npm run build  # 确保 package.json 有 "build": "vite build"
+        run: npm run build
+
+      /** 验证构建产物 */
+      - name: Verify build output
+        run: |
+          echo "Checking build output..."
+          ls -la docs/
+          if [ -d "docs/assets" ]; then
+            echo "Assets directory exists"
+            ls -la docs/assets/
+          else
+            echo "Warning: Assets directory not found!"
+            exit 1
+          fi
+          if grep -q "type=\"module\"" docs/index.html; then
+            echo "Found module script in index.html"
+          else
+            echo "Warning: No module script found in index.html!"
+            exit 1
+          fi
 
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs  # Vite 输出目录
+          path: docs
 
   deploy:
     name: Deploy to GitHub Pages
@@ -41,7 +66,9 @@ jobs:
     needs: build
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
