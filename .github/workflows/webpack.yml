@@ -41,7 +41,7 @@ jobs:
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist   # ⚠️ 根据你的 webpack 输出目录修改
+          path: docs   # ⚠️ 根据你的 webpack 输出目录修改
 
   deploy:
     name: Deploy to GitHub Pages
