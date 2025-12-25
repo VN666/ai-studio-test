@@ -1,0 +1,5 @@
+{
+  "name": "Smart Ledger Management System",
+  "description": "A comprehensive mobile-first application for store ledger management, including waste oil tracking, filter replacement records, and ice machine cleaning logs with approval workflows.",
+  "requestFramePermissions": []
+}
