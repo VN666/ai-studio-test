@@ -10,8 +10,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
-
-/** 防止并发部署 */
+  
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -41,7 +40,6 @@ jobs:
         env:
           NODE_ENV: production
 
-      /** 验证构建产物 */
       - name: Verify build output
         run: |
           echo "Checking build output..."
@@ -63,7 +61,6 @@ jobs:
             exit 1
           fi
           
-      /** 创建 .nojekyll 文件，防止 GitHub Pages 使用 Jekyll 处理 */
       - name: Add .nojekyll file
         run: touch docs/.nojekyll
 
