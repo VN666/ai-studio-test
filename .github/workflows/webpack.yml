@@ -61,36 +61,72 @@ jobs:
       - name: Build with Vite
         run: |
           echo "Starting Vite build..."
-          npm run build 2>&1 | tee build.log
+          echo "Current directory: $(pwd)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "=== Running: npm run build ==="
+          npm run build -- --mode production --debug 2>&1 | tee build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          echo "Build command completed with exit code: $BUILD_EXIT_CODE"
+          echo ""
+          echo "=== Build command completed with exit code: $BUILD_EXIT_CODE ==="
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "Build failed!"
+            cat build.log
             exit $BUILD_EXIT_CODE
           fi
+          echo "=== Checking what was generated ==="
+          find docs -type f -ls 2>/dev/null || echo "docs directory not found or empty"
         env:
           NODE_ENV: production
 
       - name: Verify build output
         run: |
-          echo "Checking build output..."
+          echo "=== Checking build output ==="
           ls -la docs/
-          if [ -d "docs/assets" ]; then
-            echo "Assets directory exists"
-            ls -la docs/assets/
-          else
-            echo "Warning: Assets directory not found!"
-            exit 1
-          fi
+          echo ""
+          echo "=== File sizes comparison ==="
+          wc -c docs/index.html
+          echo "Expected size: ~1318 bytes (with JS script tag)"
+          echo ""
           echo "=== Content of docs/index.html ==="
           cat docs/index.html
+          echo ""
           echo "=== End of index.html ==="
-          if grep -q "type=\"module\"" docs/index.html; then
-            echo "✓ Found module script in index.html"
+          echo ""
+          if [ -d "docs/assets" ]; then
+            echo "✓ Assets directory exists"
+            ls -la docs/assets/
+            echo ""
           else
-            echo "✗ Warning: No module script found in index.html!"
+            echo "✗ Assets directory NOT found!"
+            echo ""
+            echo "=== Diagnosing the problem ==="
+            echo "This means Vite did not bundle the application properly."
+            echo "Possible reasons:"
+            echo "1. Source files (index.tsx, App.tsx) are missing from repository"
+            echo "2. Vite build encountered an error but did not exit with error code"
+            echo "3. Vite configuration issue"
+            echo ""
+            echo "Please check the 'Check project files' and 'Build with Vite' steps above."
             exit 1
           fi
+          if grep -q 'src="./assets/' docs/index.html; then
+            echo "✓ Found bundled script reference in index.html"
+          else
+            echo "✗ No bundled script reference found in index.html!"
+            echo "This means the HTML was copied but not processed by Vite."
+            exit 1
+          fi
+          
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-and-output
+          path: |
+            build.log
+            docs/
+          retention-days: 7
           
       - name: Add .nojekyll file
         run: touch docs/.nojekyll
