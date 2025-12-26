@@ -1,4 +1,4 @@
-name: AI Studio Build and Deploy to Github Page
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
@@ -10,21 +10,18 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  
+
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
   build:
-    name: Build Project
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,117 +29,28 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: |
-          echo "Installing dependencies..."
-          npm install
-          echo "Dependencies installed successfully"
-          
-      - name: Check project files
-        run: |
-          echo "=== Checking source files ==="
-          ls -la
-          echo "=== Content of index.html ==="
-          cat index.html
-          echo "=== Checking if index.tsx exists ==="
-          if [ -f "index.tsx" ]; then
-            echo "✓ index.tsx exists"
-            head -20 index.tsx
-          else
-            echo "✗ index.tsx not found!"
-            exit 1
-          fi
-          if [ -f "App.tsx" ]; then
-            echo "✓ App.tsx exists"
-          else
-            echo "✗ App.tsx not found!"
-            exit 1
-          fi
+        run: npm install
 
-      - name: Build with Vite
-        run: |
-          echo "Starting Vite build..."
-          echo "Current directory: $(pwd)"
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "=== Running: npm run build ==="
-          npm run build -- --mode production --debug 2>&1 | tee build.log
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          echo ""
-          echo "=== Build command completed with exit code: $BUILD_EXIT_CODE ==="
-          if [ $BUILD_EXIT_CODE -ne 0 ]; then
-            echo "Build failed!"
-            cat build.log
-            exit $BUILD_EXIT_CODE
-          fi
-          echo "=== Checking what was generated ==="
-          find docs -type f -ls 2>/dev/null || echo "docs directory not found or empty"
+      - name: Build
+        run: npm run build
         env:
           NODE_ENV: production
 
-      - name: Verify build output
-        run: |
-          echo "=== Checking build output ==="
-          ls -la docs/
-          echo ""
-          echo "=== File sizes comparison ==="
-          wc -c docs/index.html
-          echo "Expected size: ~1318 bytes (with JS script tag)"
-          echo ""
-          echo "=== Content of docs/index.html ==="
-          cat docs/index.html
-          echo ""
-          echo "=== End of index.html ==="
-          echo ""
-          if [ -d "docs/assets" ]; then
-            echo "✓ Assets directory exists"
-            ls -la docs/assets/
-            echo ""
-          else
-            echo "✗ Assets directory NOT found!"
-            echo ""
-            echo "=== Diagnosing the problem ==="
-            echo "This means Vite did not bundle the application properly."
-            echo "Possible reasons:"
-            echo "1. Source files (index.tsx, App.tsx) are missing from repository"
-            echo "2. Vite build encountered an error but did not exit with error code"
-            echo "3. Vite configuration issue"
-            echo ""
-            echo "Please check the 'Check project files' and 'Build with Vite' steps above."
-            exit 1
-          fi
-          if grep -q 'src="./assets/' docs/index.html; then
-            echo "✓ Found bundled script reference in index.html"
-          else
-            echo "✗ No bundled script reference found in index.html!"
-            echo "This means the HTML was copied but not processed by Vite."
-            exit 1
-          fi
-          
-      - name: Upload build logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs-and-output
-          path: |
-            build.log
-            docs/
-          retention-days: 7
-          
-      - name: Add .nojekyll file
+      - name: Add .nojekyll
         run: touch docs/.nojekyll
 
-      - name: Upload artifact for Pages
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
   deploy:
-    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
